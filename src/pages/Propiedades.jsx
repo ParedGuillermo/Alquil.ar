@@ -1,79 +1,51 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabaseClient";
+// src/pages/Propiedades.jsx
+import React, { useState, useEffect } from "react";
+import { supabase } from "../supabaseClient"; // Asegúrate de tener configurado tu supabase client
 
-export default function Propiedades() {
+const Propiedades = () => {
   const [propiedades, setPropiedades] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
-  const fetchPropiedades = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("propiedades")
-      .select("*")
-      .order("creado_en", { ascending: false });
-
-    if (error) {
-      setError(error.message);
-      setPropiedades([]);
-    } else {
-      setPropiedades(data);
-      setError(null);
-    }
-    setLoading(false);
-  };
-
+  // Cargar las propiedades de la base de datos
   useEffect(() => {
+    const fetchPropiedades = async () => {
+      const { data, error } = await supabase
+        .from("propiedades")
+        .select("*")
+        .order("creado_en", { ascending: false }); // Ordenar por fecha de creación
+
+      if (error) {
+        console.error("Error al obtener propiedades:", error);
+      } else {
+        setPropiedades(data);
+      }
+      setLoading(false);
+    };
+
     fetchPropiedades();
   }, []);
 
-  if (loading) return <p className="p-4 text-center">Cargando propiedades...</p>;
-  if (error) return <p className="p-4 text-center text-red-600">Error: {error}</p>;
-  if (propiedades.length === 0)
-    return <p className="p-4 text-center">No se encontraron propiedades.</p>;
+  if (loading) return <div>Cargando propiedades...</div>;
 
   return (
-    <div className="max-w-5xl min-h-screen p-4 mx-auto bg-gray-50">
-      <h1 className="mb-6 text-3xl font-bold text-gray-800">Propiedades disponibles</h1>
-      <ul className="space-y-6">
-        {propiedades.map((prop) => (
-          <li
-            key={prop.id}
-            onClick={() => navigate(`/propiedad/${prop.id}`)}
-            className="flex flex-col gap-4 p-5 transition bg-white rounded-lg shadow-md cursor-pointer hover:shadow-lg sm:flex-row sm:items-center"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") navigate(`/propiedad/${prop.id}`);
-            }}
-            aria-label={`Ver detalles de la propiedad ${prop.titulo}`}
-          >
-            <div className="flex-shrink-0 w-full h-32 overflow-hidden bg-gray-200 rounded-md sm:w-48">
-              <img
-                src={`https://your-project-ref.supabase.co/storage/v1/object/public/images/${prop.id}/1.jpg`}
-                alt={prop.titulo}
-                className="object-cover w-full h-full"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://via.placeholder.com/192x128?text=Sin+imagen";
-                }}
-              />
-            </div>
-            <div className="flex-grow">
-              <h2 className="text-xl font-semibold text-gray-900">{prop.titulo}</h2>
-              <p className="text-gray-600">{prop.ciudad}, {prop.provincia}</p>
-              <p className="mt-1 text-gray-700">{prop.descripcion?.slice(0, 100)}{prop.descripcion?.length > 100 ? "..." : ""}</p>
-              <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
-                <span>Tipo: <strong>{prop.tipo}</strong></span>
-                <span>Habitaciones: <strong>{prop.habitaciones ?? "N/A"}</strong></span>
-                <span>Baños: <strong>{prop.banos ?? "N/A"}</strong></span>
-              </div>
-              <p className="mt-3 text-lg font-bold text-blue-700">${Number(prop.precio).toLocaleString()}</p>
-            </div>
-          </li>
+    <div className="p-4">
+      <h1 className="mb-4 text-xl font-semibold">Listado de Propiedades</h1>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {propiedades.map((propiedad) => (
+          <div key={propiedad.id} className="p-4 border rounded-lg">
+            <h2 className="font-bold">{propiedad.titulo}</h2>
+            <p>{propiedad.descripcion}</p>
+            <p>{propiedad.direccion}</p>
+            <p>{propiedad.ciudad}, {propiedad.provincia}</p>
+            <p>${propiedad.precio}</p>
+            <button className="px-4 py-2 mt-2 text-white bg-blue-600 rounded">
+              Ver detalles
+            </button>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
-}
+};
+
+export default Propiedades;
