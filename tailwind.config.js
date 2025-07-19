@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'media', // Modo oscuro basado en preferencia del sistema
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
@@ -18,23 +19,23 @@ module.exports = {
         neon: '0 0 8px #FF49DB, 0 0 15px #FF49DB, 0 0 20px #FF49DB',
         'neon-cyan': '0 0 8px #00FFF7, 0 0 15px #00FFF7, 0 0 20px #00FFF7',
       },
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        poppins: ['Poppins', 'sans-serif'],
-      },
       dropShadow: {
         'neon-pink': '0 0 5px #FF49DB',
         'neon-cyan': '0 0 5px #00FFF7',
       },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        poppins: ['Poppins', 'sans-serif'],
+      },
       fontSize: {
-        base: '0.875rem',
-        sm: '0.75rem',
-        lg: '1rem',
-        xl: '1.125rem',
+        base: '0.875rem',  // 14px
+        sm: '0.75rem',    // 12px
+        lg: '1rem',       // 16px
+        xl: '1.125rem',   // 18px
       },
       animation: {
         'pulse-slow': 'pulse 6s ease-in-out infinite',
-        'float': 'float 20s linear infinite',
+        float: 'float 20s linear infinite',
       },
       keyframes: {
         float: {
@@ -44,8 +45,9 @@ module.exports = {
       },
     },
     screens: {
-      mobile: {'max': '480px'},
-      tablet: {'min': '481px', 'max': '768px'},
+      'mobile': {'max': '480px'},
+      'tablet': {'min': '481px', 'max': '768px'},
+      'desktop': '769px',
     },
   },
   plugins: [],

@@ -17,9 +17,11 @@
   "dependencies": {
     "@babel/runtime": "^7.27.6",
     "@fontsource/inter": "^5.2.6",
+    "@fortawesome/fontawesome-free": "^6.7.2",
     "@supabase/supabase-js": "^2.50.3",
     "framer-motion": "^12.23.3",
     "leaflet": "^1.9.4",
+    "lucide-react": "^0.525.0",
     "node-fetch": "^2.7.0",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",

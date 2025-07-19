@@ -1,142 +1,125 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import HeroSection from "../components/HeroSection";
-import HeroVapeCommunity from "../components/HeroVapeCommunity";
-import HeroNosotros from "../components/HeroNosotros";
-import { useAuth } from "../hooks/useAuth";
-import logo from "../assets/home/icon.png";
+import { supabase } from "../supabaseClient";
+import BottomNav from "../components/BottomNav";
 
 export default function Home() {
+  const [propiedades, setPropiedades] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroCiudad, setFiltroCiudad] = useState("");
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
-  const [scrolled, setScrolled] = useState(false);
+
+  const fetchPropiedades = async () => {
+    setLoading(true);
+    let query = supabase.from("propiedades").select("*");
+
+    if (filtroCiudad) query = query.eq("ciudad", filtroCiudad);
+    if (busqueda) query = query.ilike("titulo", `%${busqueda}%`);
+
+    const { data, error } = await query.limit(20).order("creado_en", { ascending: false });
+
+    if (error) {
+      console.error("Error al traer propiedades:", error.message);
+    } else {
+      setPropiedades(data);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    fetchPropiedades();
   }, []);
 
+  const handleBuscar = () => fetchPropiedades();
+
   return (
-    <div className="min-h-screen px-4 py-8 bg-gradient-to-b from-very-dark-bg to-dark-bg sm:px-6 sm:py-12">
-      {/* Header dinámico */}
-      <header className="relative flex flex-col items-center w-full mb-12">
-        {/* Logo con scale animado */}
-        <motion.img
-          src={logo}
-          alt="Logo"
-          initial={{ scale: 1 }}
-          animate={{ scale: scrolled ? 0.75 : 1 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          className="w-24 h-24 sm:w-28 sm:h-28"
-        />
+    <>
+      <div className="flex flex-col min-h-screen pb-20 text-gray-900 bg-gray-50">
+        {/* Header */}
+        <header className="sticky top-0 z-40 flex items-center justify-center py-4 bg-white border-b border-gray-200 shadow-sm">
+          <h1 className="text-2xl font-extrabold tracking-tight text-blue-700 select-none">Alquil.ar</h1>
+        </header>
 
-        {/* Texto con fade + slide desde la derecha */}
-        <AnimatePresence>
-          {scrolled && (
-            <motion.span
-              key="vape-ar-text"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.6 }}
-              className="absolute top-1/2 left-[calc(50%+4rem)] -translate-y-1/2 text-light-gray font-bold text-2xl"
+        {/* Buscador */}
+        <section className="self-center w-full max-w-4xl p-5 mx-4 my-6 bg-white rounded-lg shadow-md">
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <input
+              type="text"
+              placeholder="Buscar propiedad (ej: departamento, casa...)"
+              className="flex-1 px-5 py-3 transition border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+            <select
+              className="w-full px-5 py-3 transition border border-gray-300 rounded-lg sm:w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filtroCiudad}
+              onChange={(e) => setFiltroCiudad(e.target.value)}
             >
-              Vape.AR
-            </motion.span>
-          )}
-        </AnimatePresence>
-
-        {/* Botones visibles solo antes del scroll */}
-        {!isLoggedIn && !scrolled && (
-          <div className="flex flex-col items-center gap-4 mt-6 sm:flex-row">
+              <option value="">Todas las ciudades</option>
+              <option value="Buenos Aires">Buenos Aires</option>
+              <option value="Córdoba">Córdoba</option>
+              <option value="Rosario">Rosario</option>
+              <option value="Corrientes">Corrientes</option>
+            </select>
             <button
-              onClick={() => navigate("/login")}
-              className="px-6 py-3 text-lg font-semibold rounded-full bg-electric-blue text-very-dark-bg border-4 border-electric-blue shadow-[0_0_6px_1px_rgba(42,127,255,0.6)] hover:bg-violet-neon hover:border-violet-neon hover:shadow-[0_0_8px_3px_rgba(157,78,221,0.8)] focus:outline-none focus-visible:ring-2 sm:focus-visible:ring-4 focus-visible:ring-violet-neon active:scale-95 transition"
+              onClick={handleBuscar}
+              className="px-8 py-3 font-semibold text-white transition bg-blue-600 rounded-lg hover:bg-blue-700"
             >
-              Iniciar sesión
-            </button>
-            <button
-              onClick={() => navigate("/register")}
-              className="px-6 py-3 text-lg font-semibold rounded-full bg-violet-neon text-very-dark-bg border-4 border-violet-neon shadow-[0_0_6px_1px_rgba(157,78,221,0.6)] hover:bg-electric-blue hover:border-electric-blue hover:shadow-[0_0_8px_3px_rgba(42,127,255,0.8)] focus:outline-none focus-visible:ring-2 sm:focus-visible:ring-4 focus-visible:ring-electric-blue active:scale-95 transition"
-            >
-              Registrarse
+              Buscar
             </button>
           </div>
-        )}
-      </header>
+        </section>
 
-      {/* Hero principal */}
-      <div className="mb-12">
-        <HeroSection onReportClick={() => navigate("/reportar-perdida")} />
+        {/* Propiedades */}
+        <main className="flex-grow w-full max-w-6xl px-5 mx-auto mb-10">
+          <h2 className="mb-6 text-xl font-semibold text-gray-800">Propiedades disponibles</h2>
+
+          {loading ? (
+            <p className="text-center text-gray-500">Cargando propiedades...</p>
+          ) : propiedades.length === 0 ? (
+            <p className="text-center text-gray-500">No se encontraron propiedades.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+              {propiedades.map((prop) => (
+                <article
+                  key={prop.id}
+                  onClick={() => navigate(`/propiedades/${prop.id}`)}
+                  className="flex flex-col overflow-hidden transition bg-white shadow-md cursor-pointer rounded-xl hover:shadow-lg"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && navigate(`/propiedades/${prop.id}`)}
+                  aria-label={`Ver detalles de la propiedad ${prop.titulo}`}
+                >
+                  <div className="aspect-[4/3] relative w-full overflow-hidden rounded-t-xl">
+                    <img
+                      src={`https://your-project-ref.supabase.co/storage/v1/object/public/images/${prop.id}/1.jpg`}
+                      alt={prop.titulo}
+                      className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://via.placeholder.com/400x300?text=Sin+imagen";
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col flex-grow p-4">
+                    <h3 className="mb-1 text-lg font-semibold text-gray-900">{prop.titulo}</h3>
+                    <p className="flex-grow text-sm text-gray-600">{prop.ciudad}</p>
+                    <p className="mt-3 text-lg font-bold text-blue-700">${Number(prop.precio).toLocaleString()}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </main>
+
+        {/* Footer */}
+        <footer className="p-4 text-xs text-center text-gray-400 border-t border-gray-200 select-none">
+          &copy; 2025 Alquil.ar - Todos los derechos reservados
+        </footer>
       </div>
 
-      {/* Hero Vape Community */}
-      <div className="mb-12">
-        <HeroVapeCommunity onReportClick={() => navigate("/vape-community")} />
-      </div>
-
-      {/* Hero Nosotros */}
-      <div className="mb-12">
-        <HeroNosotros onReportClick={() => navigate("/Nosotros")} />
-      </div>
-
-      {/* Tarjeta de visibilidad para colaboradores */}
-      <section
-        onClick={() => navigate("/colaboraciones")}
-        className="cursor-pointer p-6 mb-12 bg-gradient-to-r from-[#e94560] via-[#d63447] to-[#bb2e3f] rounded-xl shadow-lg text-white max-w-4xl mx-auto hover:scale-[1.03] transition-transform"
-        aria-label="Invitación a colaborar y aparecer en la página principal"
-      >
-        <h2 className="mb-3 text-3xl font-extrabold drop-shadow-lg">
-          ¿Querés aparecer en la página principal?
-        </h2>
-        <p className="mb-4 text-lg drop-shadow-md">
-          Aumentá la visibilidad de tu marca o producto aportando para análisis, reviews o colaborando con Vape.AR. 
-          ¡Sumate a nuestra comunidad y hacé crecer tu alcance!
-        </p>
-        <button
-          type="button"
-          className="px-6 py-3 font-semibold text-[#e94560] bg-white rounded-full hover:bg-gray-100 transition"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate("/colaboraciones");
-          }}
-        >
-          Colaborar ahora
-        </button>
-      </section>
-
-      {/* Tarjeta para descargar la App Android */}
-      <section className="p-6 mt-12 text-center text-white border border-gray-700 shadow-md bg-dark-gray rounded-xl">
-        <h2 className="mb-4 text-3xl font-bold text-electric-blue">Descargá la App de VAPE.AR</h2>
-        <p className="mb-4 text-lg text-gray-300">
-          Llevá VAPE.AR en tu celular. Explorá productos, hacé pedidos y descubrí tiendas desde cualquier lugar.
-        </p>
-        <a
-          href="https://github.com/ParedGuillermo/Vape.Ar/releases/download/V1/VAPE-AR-0_4_debug.apk"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block px-6 py-3 font-semibold transition rounded-full shadow-lg text-very-dark-bg bg-electric-blue hover:bg-violet-neon"
-        >
-          Descargar App Android
-        </a>
-
-        {/* Instrucciones para instalar la APK */}
-        <div className="mt-6 text-sm text-left text-gray-400 max-w-xl mx-auto bg-[#1e1e1e] p-4 rounded-md border border-gray-600">
-          <p className="mb-2 font-semibold text-violet-neon">⚠ Instrucciones de instalación:</p>
-          <ul className="space-y-1 list-disc list-inside">
-            <li>1. Al descargar, tu celular puede mostrar un mensaje de advertencia.</li>
-            <li>2. Tocá <strong>"Descargar de todos modos"</strong> si aparece.</li>
-            <li>3. Al abrir el archivo, seleccioná <strong>"Instalar"</strong>.</li>
-            <li>4. Si te pide analizar la app, podés hacerlo o continuar.</li>
-            <li>5. Luego tocá <strong>"Instalar"</strong> nuevamente.</li>
-            <li>6. Una vez completada la instalación, tocá <strong>"Abrir"</strong> y empezá a usar VAPE.AR.</li>
-          </ul>
-        </div>
-      </section>
-    </div>
+      {/* BottomNav fijo */}
+      <BottomNav />
+    </>
   );
 }

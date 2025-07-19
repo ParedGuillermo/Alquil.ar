@@ -4,30 +4,41 @@ import { useNavigate } from "react-router-dom";
 const HeroSection = () => {
   const navigate = useNavigate();
 
-  const handleReportClick = () => {
-    navigate("/tiendas");
+  const handleSearchClick = () => {
+    navigate("/buscar-alquileres");
+  };
+
+  const handlePublishClick = () => {
+    navigate("/publicar-alquiler");
   };
 
   return (
-    <section className="relative p-6 mb-12 rounded-lg shadow-lg bg-gradient-to-b from-[#0a0a0a] to-[#121212] text-light-gray sm:p-12 border-4 border-neon-pink shadow-[0_0_10px_5px rgba(157,78,221,0.7)]">
-      {/* Fondo oscuro con opacidad */}
-      <div className="absolute inset-0 bg-black rounded-lg opacity-50"></div>
+    <section className="relative max-w-5xl px-6 py-20 mx-auto text-white shadow-lg sm:px-12 sm:py-28 bg-gradient-to-b from-green-900 via-green-800 to-green-900 rounded-3xl">
+      {/* Fondo decorativo sutil */}
+      <div className="absolute inset-0 bg-gradient-to-r from-green-600/30 to-green-900/50 rounded-3xl -z-10"></div>
 
-      <div className="relative z-10 text-center">
-        <h1 className="mb-6 text-4xl font-extrabold text-white font-poppins drop-shadow-neon">
-          ¿Buscás los mejores productos de vapeo?
+      <div className="relative z-10 max-w-3xl mx-auto text-center">
+        <h1 className="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl md:text-6xl">
+          Encontrá tu próximo hogar o local para alquilar
         </h1>
-        <p className="max-w-lg mx-auto mb-10 text-lg font-medium text-neon-cyan drop-shadow-neon">
-          Encontrá tiendas, accesorios y novedades en Vape.ar.
+        <p className="mt-6 text-lg font-medium text-green-200 sm:text-xl">
+          Buscá y publicá alquileres de departamentos, casas y locales con facilidad y seguridad.
         </p>
-        <button
-          onClick={handleReportClick}
-          className="px-8 py-4 mx-auto text-lg font-semibold text-white transition-transform duration-150 rounded-full bg-neon-pink shadow-neon hover:bg-neon-pink/90 active:scale-95 focus:outline-none focus:ring-4 focus:ring-neon-pink/50"
-          aria-label="Ir a tiendas"
-          type="button"
-        >
-          Ver tiendas
-        </button>
+
+        <div className="flex flex-col justify-center gap-4 mt-10 sm:flex-row">
+          <button
+            onClick={handleSearchClick}
+            className="px-8 py-4 font-semibold text-green-900 transition bg-white rounded-full shadow-md hover:bg-gray-100 active:scale-95"
+          >
+            Buscar alquileres
+          </button>
+          <button
+            onClick={handlePublishClick}
+            className="px-8 py-4 font-semibold text-white transition bg-green-700 rounded-full shadow-md hover:bg-green-600 active:scale-95"
+          >
+            Publicar alquiler
+          </button>
+        </div>
       </div>
     </section>
   );
