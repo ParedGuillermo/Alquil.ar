@@ -1,84 +1,53 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Base para html y body */
-html, body {
-  @apply min-h-screen font-sans text-gray-800 bg-gradient-to-br from-green-100 via-blue-100 to-purple-100;
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Estilo base para la página */
+body {
+  background-color: #0f172a; /* Fondo oscuro */
+  color: #e5e7eb; /* Texto claro */
+  font-family: 'Inter', sans-serif; /* Fuente profesional */
+  margin: 0;
+  padding: 0;
 }
 
-/* Root container: ajustado para mobile y desktop */
-#root {
-  @apply max-w-md px-4 py-6 mx-auto sm:max-w-xl md:max-w-4xl lg:max-w-6xl sm:px-6 md:px-8;
+/* Ajustar las imágenes de fondo */
+.bg-cover {
+  background-size: cover;
+  background-position: center;
 }
 
-/* Encabezados */
-h1, h2, h3 {
-  @apply font-extrabold leading-tight text-gray-900;
+/* Botón principal */
+.button-primary {
+  background-color: #2563eb;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Botones base */
-.btn {
-  @apply px-5 py-3 font-semibold text-white transition-colors duration-300 ease-in-out bg-blue-500 rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75;
-  cursor: pointer;
-  user-select: none;
+.button-primary:hover {
+  background-color: #1e40af;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
-
-/* Botones secundarios ejemplo */
-.btn-secondary {
-  @apply bg-purple-600 hover:bg-purple-700 focus:ring-purple-500;
-}
-
-/* Imágenes responsivas */
-img {
-  @apply block h-auto max-w-full rounded-lg;
-}
-
-/* Aseguramos que las imágenes de fondo aprovechen toda la pantalla */
-.bg-cover-image {
-  @apply w-full h-screen bg-center bg-cover;
-}
-
-/* Links estilo */
-a {
-  @apply text-blue-600 no-underline transition-colors duration-300 hover:text-blue-700;
-}
-
-/* Inputs y formularios básicos */
-input, select, textarea, button {
-  @apply font-sans text-base text-gray-800;
-}
-
-/* Scrollbar personalizado (webkit) */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-purple-400 rounded;
-}
-
-/* Utilidades adicionales */
 
 /* Card base */
 .card {
-  @apply p-6 transition-shadow bg-white shadow-lg rounded-xl hover:shadow-xl;
+  background-color: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
 }
 
-/* Textos secundarios */
-.text-muted {
-  @apply text-gray-500;
+.card:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
-/* Responsive utilities */
-@media (min-width: 640px) {
-  /* ejemplo extra para dispositivos pequeños */
-  .text-responsive {
-    @apply text-lg;
-  }
+/* Enlaces */
+a {
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #1e40af;
 }
