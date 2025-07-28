@@ -7,13 +7,16 @@ import { useAuth } from "./hooks/useAuth";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Profile from "./pages/Profile";
+import Profile from "./pages/Profile";  // <-- lo agregué acá
 import AdminPanel from "./pages/AdminPanel";
 import CargarPropiedad from "./pages/CargarPropiedad";
 import Nosotros from "./pages/Nosotros";
 import PropiedadDetalle from "./pages/PropiedadDetalle";
 import Propiedades from "./pages/Propiedades";
 import Servicios from "./pages/Servicios";
+
+// Importá el nuevo componente:
+import MapaAlquileres from "./pages/MapaAlquileres";
 
 import BottomNav from "./components/BottomNav";
 import { CartProvider } from "./components/CartContext";
@@ -40,6 +43,9 @@ export default function App() {
               <Route path="/propiedades" element={<Propiedades />} />
               <Route path="/propiedad/:id" element={<PropiedadDetalle />} />
               <Route path="/servicios" element={<Servicios />} />
+
+              {/* Nueva ruta para mapa de alquileres */}
+              <Route path="/mapa-alquileres" element={<MapaAlquileres />} />
 
               {/* Rutas protegidas */}
               <Route

@@ -2,6 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { Icon } from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Icono para el marcador
+const markerIcon = new Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
 const DetallePropiedad = () => {
   const { id } = useParams();
   const [propiedad, setPropiedad] = useState(null);
@@ -45,6 +56,29 @@ const DetallePropiedad = () => {
         </div>
 
         <p className="mb-4 text-gray-300 whitespace-pre-line">{propiedad.descripcion}</p>
+
+        {/* Mapa con ubicación */}
+        {propiedad.latitud && propiedad.longitud && (
+          <div className="h-64 mb-6 overflow-hidden rounded-xl">
+            <MapContainer
+              center={[propiedad.latitud, propiedad.longitud]}
+              zoom={15}
+              style={{ height: "100%", width: "100%" }}
+              scrollWheelZoom={false}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Marker
+                position={[propiedad.latitud, propiedad.longitud]}
+                icon={markerIcon}
+              >
+                <Popup>{propiedad.titulo}</Popup>
+              </Marker>
+            </MapContainer>
+          </div>
+        )}
 
         <div className="p-4 mb-6 text-white bg-gray-800 rounded-xl">
           <p>
