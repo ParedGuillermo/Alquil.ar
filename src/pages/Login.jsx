@@ -1,73 +1,157 @@
-// src/pages/Login.jsx
-import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { supabase } from "../supabaseClient";
+import { useNavigate, useLocation } from "react-router-dom";
 
-export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
+export default function LoginRegister() {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [tipo, setTipo] = useState("inquilino");
+  const [error, setError] = useState("");
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.redirectTo || "/";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg(null);
-    setLoading(true);
-    try {
-      await login(email, password);
-      navigate("/");
-    } catch (error) {
-      setErrorMsg(error.message);
+    setError("");
+    setShowVerificationMessage(false);
+
+    if (isLogin) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        navigate(redirectTo);
+      }
+    } else {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      const { user } = data;
+      if (user) {
+        const { error: insertError } = await supabase.from("usuarios").insert([
+          {
+            id: user.id,
+            email,
+            nombre,
+            tipo,
+          },
+        ]);
+
+        if (insertError) {
+          setError(insertError.message);
+          return;
+        }
+      }
+
+      // Mostrar mensaje de verificación y cambiar a login
+      setShowVerificationMessage(true);
+      setIsLogin(true);
+      setNombre("");
+      setEmail("");
+      setPassword("");
+      setTipo("inquilino");
     }
-    setLoading(false);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-purple-100">
-      <h1 className="mb-6 text-3xl font-bold">Iniciar sesión</h1>
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col w-full max-w-md gap-5 p-6 bg-white rounded shadow"
-      >
-        <input
-          type="email"
-          placeholder="Correo electrónico"
-          className="p-3 text-base border rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          className="p-3 text-base border rounded"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-        />
-        {errorMsg && <p className="text-center text-red-600">{errorMsg}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="p-3 text-lg text-white transition bg-purple-600 rounded hover:bg-purple-700"
-        >
-          {loading ? "Ingresando..." : "Iniciar sesión"}
-        </button>
-      </form>
+    <div className="flex items-center justify-center min-h-screen px-4 text-white bg-gray-900">
+      <div className="w-full max-w-md p-6 bg-gray-800 shadow-lg rounded-2xl">
+        <h2 className="mb-6 text-2xl font-bold text-center">
+          {isLogin ? "Iniciar Sesión" : "Registrarse"}
+        </h2>
 
-      {/* Botón para ir a Registro */}
-      <button
-        onClick={() => navigate("/register")}
-        className="mt-6 text-purple-700 underline hover:text-purple-900"
-        type="button"
-      >
-        ¿No tenés cuenta? Registrate
-      </button>
+        {error && (
+          <div className="px-4 py-2 mb-4 text-white bg-red-500 rounded">{error}</div>
+        )}
+
+        {showVerificationMessage && (
+          <div className="px-4 py-3 mb-4 text-white bg-green-600 rounded">
+            Registro exitoso. Por favor, verifica tu correo para activar tu cuenta antes de iniciar sesión.
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && !showVerificationMessage && (
+            <>
+              <input
+                type="text"
+                placeholder="Nombre"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                required
+                className="w-full px-4 py-2 text-white placeholder-gray-300 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <select
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+                className="w-full px-4 py-2 text-white bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="inquilino">Inquilino</option>
+                <option value="propietario">Propietario</option>
+              </select>
+            </>
+          )}
+
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-4 py-2 text-white placeholder-gray-300 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={showVerificationMessage}
+          />
+
+          <input
+            type="password"
+            placeholder="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full px-4 py-2 text-white placeholder-gray-300 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={showVerificationMessage}
+          />
+
+          <button
+            type="submit"
+            className={`w-full py-2 rounded bg-blue-600 hover:bg-blue-700 transition duration-200 ${
+              showVerificationMessage ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={showVerificationMessage}
+          >
+            {isLogin ? "Iniciar Sesión" : "Registrarse"}
+          </button>
+        </form>
+
+        <p className="mt-4 text-sm text-center text-gray-300">
+          {isLogin ? "¿No tenés cuenta?" : "¿Ya tenés cuenta?"}{" "}
+          <button
+            className="text-blue-400 hover:underline"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError("");
+              setShowVerificationMessage(false);
+            }}
+          >
+            {isLogin ? "Registrate" : "Iniciá sesión"}
+          </button>
+        </p>
+      </div>
     </div>
   );
 }
