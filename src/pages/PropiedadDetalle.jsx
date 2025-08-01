@@ -14,34 +14,46 @@ const markerIcon = new Icon({
 const DetallePropiedad = () => {
   const { id } = useParams();
   const [propiedad, setPropiedad] = useState(null);
+  const [usuario, setUsuario] = useState(null);
   const [email, setEmail] = useState(null);
   const [phone, setPhone] = useState(null);
 
   useEffect(() => {
-    const fetchPropiedad = async () => {
+    const fetchPropiedadYUsuario = async () => {
+      // Traemos la propiedad junto con el usuario que la registró
       const { data, error } = await supabase
         .from("propiedades")
-        .select("*")
+        .select(`
+          *,
+          usuario:usuario_id (
+            id,
+            nombre,
+            verificado
+          )
+        `)
         .eq("id", id)
         .single();
+
       if (!error) {
         setPropiedad(data);
+        setUsuario(data.usuario || null);
         parseContacto(data.contacto);
-      } else console.error(error);
+      } else {
+        console.error(error);
+      }
     };
-    fetchPropiedad();
+
+    fetchPropiedadYUsuario();
   }, [id]);
 
   // Función para extraer email y teléfono del campo contacto
   const parseContacto = (contacto) => {
     if (!contacto) return;
 
-    // Regex para email (simple)
     const emailRegex = /[\w.+-]+@[\w-]+\.[\w.-]+/i;
     const foundEmail = contacto.match(emailRegex);
     setEmail(foundEmail ? foundEmail[0] : null);
 
-    // Regex para teléfono (números, puede tener +, espacios, guiones)
     const phoneRegex = /(\+?\d[\d\s-]{6,}\d)/;
     const foundPhone = contacto.match(phoneRegex);
     setPhone(foundPhone ? foundPhone[0].replace(/\s+/g, "") : null);
@@ -59,6 +71,32 @@ const DetallePropiedad = () => {
       {/* Título y dirección */}
       <h1 className="mb-4 text-4xl font-bold text-white">{propiedad.titulo}</h1>
       <p className="mb-2 text-lg text-cyan-400">{propiedad.direccion}</p>
+
+      {/* Nombre usuario y verificado */}
+      {usuario && (
+        <div className="flex items-center mb-6 space-x-2">
+          <span className="font-semibold text-white">Dueño: {usuario.nombre || "Sin nombre"}</span>
+          {usuario.verificado && (
+            <span
+              className="flex items-center px-2 py-1 text-sm font-semibold text-green-800 bg-green-300 rounded"
+              title="Usuario verificado"
+              aria-label="Usuario verificado"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Verificado
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Imágenes */}
       <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 md:grid-cols-3">
@@ -141,8 +179,7 @@ const DetallePropiedad = () => {
               <strong>Permiten niños:</strong> {propiedad.permiten_ninos ? "Sí" : "No"}
             </li>
             <li>
-              <strong>Servicios incluidos:</strong>{" "}
-              {propiedad.servicios_incluidos ? "Sí" : "No"}
+              <strong>Servicios incluidos:</strong> {propiedad.servicios_incluidos ? "Sí" : "No"}
             </li>
             <li>
               <strong>Amoblado:</strong> {propiedad.amoblado ? "Sí" : "No"}

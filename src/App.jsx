@@ -7,7 +7,7 @@ import { useAuth } from "./hooks/useAuth";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Profile from "./pages/Profile";  // <-- lo agregué acá
+import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
 import CargarPropiedad from "./pages/CargarPropiedad";
 import Nosotros from "./pages/Nosotros";
@@ -17,6 +17,8 @@ import Servicios from "./pages/Servicios";
 
 // Importá el nuevo componente:
 import MapaAlquileres from "./pages/MapaAlquileres";
+import Verification from "./pages/Verification"; // <-- AGREGADO
+import EditarPropiedad from "./pages/EditarPropiedad"; // <-- AGREGADO
 
 import BottomNav from "./components/BottomNav";
 import { CartProvider } from "./components/CartContext";
@@ -47,6 +49,16 @@ export default function App() {
               {/* Nueva ruta para mapa de alquileres */}
               <Route path="/mapa-alquileres" element={<MapaAlquileres />} />
 
+              {/* Nueva ruta para verificación */}
+              <Route
+                path="/verification"
+                element={
+                  <ProtectedRoute>
+                    <Verification />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Rutas protegidas */}
               <Route
                 path="/profile"
@@ -61,6 +73,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <CargarPropiedad />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/editar-propiedad/:id"
+                element={
+                  <ProtectedRoute>
+                    <EditarPropiedad />
                   </ProtectedRoute>
                 }
               />

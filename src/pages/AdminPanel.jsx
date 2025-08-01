@@ -1,650 +1,464 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import L from "leaflet";
+import { Tabs, Tab } from "@mui/material";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Solución icono marker default para leaflet + React (arregla icono roto)
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-});
-
-const LocationMarker = ({ position, setPosition }) => {
-  // Hook para detectar click y mover marcador
-  useMapEvents({
-    click(e) {
-      setPosition(e.latlng);
-    },
-  });
-
-  if (!position) return null;
-
-  return (
-    <Marker
-      position={position}
-      draggable={true}
-      eventHandlers={{
-        dragend: (e) => {
-          const marker = e.target;
-          const newPos = marker.getLatLng();
-          setPosition(newPos);
-        },
-      }}
-    />
-  );
-};
-
 const AdminPanel = () => {
+  const [tabIndex, setTabIndex] = useState(0);
   const [usuarios, setUsuarios] = useState([]);
   const [propiedades, setPropiedades] = useState([]);
-  const [editingUser, setEditingUser] = useState(null);
-  const [editingProp, setEditingProp] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [selectedPropiedad, setSelectedPropiedad] = useState(null);
+  const [mapPos, setMapPos] = useState([-27.4678, -58.8345]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: usuariosData, error: usuariosError } = await supabase
-        .from("usuarios")
-        .select("*");
-      if (usuariosError) {
-        alert("Error cargando usuarios: " + usuariosError.message);
-        return;
-      }
-
-      const { data: propiedadesData, error: propError } = await supabase
-        .from("propiedades")
-        .select("*");
-
-      if (propError) {
-        alert("Error cargando propiedades: " + propError.message);
-        return;
-      }
-
-      // Convertir paths de imágenes a URLs públicas
-      const propiedadesConUrls = propiedadesData.map((p) => {
-        if (p.imagenes && Array.isArray(p.imagenes)) {
-          const imagenesPublicas = p.imagenes.map((path) => {
-            const { data } = supabase.storage.from("images").getPublicUrl(path);
-            return data.publicUrl;
-          });
-          return { ...p, imagenes: imagenesPublicas };
-        }
-        return p;
-      });
-
-      setUsuarios(usuariosData || []);
-      setPropiedades(propiedadesConUrls || []);
-    };
-
-    fetchData();
+    getUsuarios();
+    getPropiedades();
   }, []);
 
-  const handleUserChange = (e) => {
-    const { name, value } = e.target;
-    setEditingUser((prev) => ({ ...prev, [name]: value }));
+  const getUsuarios = async () => {
+    const { data } = await supabase.from("usuarios").select("*");
+    setUsuarios(data || []);
   };
 
-  const handlePropChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setEditingProp((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+  const getPropiedades = async () => {
+    const { data } = await supabase.from("propiedades").select("*");
+    setPropiedades(data || []);
   };
 
-  // Actualiza latitud/longitud desde el mapa
-  const setPosition = (latlng) => {
-    setEditingProp((prev) => ({
-      ...prev,
-      latitud: latlng.lat,
-      longitud: latlng.lng,
-    }));
+  const updateVerificacion = async (userId, status) => {
+    await supabase.from("usuarios").update({ verificado: status }).eq("id", userId);
+    getUsuarios();
   };
 
-  const saveUser = async () => {
-    if (!editingUser) return;
-    const { error } = await supabase
-      .from("usuarios")
-      .update(editingUser)
-      .eq("id", editingUser.id);
-    if (error) {
-      alert("Error al actualizar usuario: " + error.message);
-      return;
+  const updatePropiedad = async () => {
+    if (!selectedPropiedad) return;
+    const { id, ...rest } = selectedPropiedad;
+    await supabase.from("propiedades").update(rest).eq("id", id);
+    setSelectedPropiedad(null);
+    getPropiedades();
+  };
+
+  const handleMapClick = (e) => {
+    if (selectedPropiedad) {
+      setSelectedPropiedad({
+        ...selectedPropiedad,
+        latitud: e.latlng.lat,
+        longitud: e.latlng.lng,
+      });
+      setMapPos([e.latlng.lat, e.latlng.lng]);
     }
-    setUsuarios((prev) =>
-      prev.map((u) => (u.id === editingUser.id ? editingUser : u))
-    );
-    setEditingUser(null);
-  };
-
-  const saveProp = async () => {
-    if (!editingProp) return;
-
-    setLoading(true);
-
-    // Convertir URLs públicas a paths para guardar
-    const imagenesPaths = (editingProp.imagenes || []).map((url) => {
-      try {
-        const urlObj = new URL(url);
-        const index = urlObj.pathname.indexOf("/images/");
-        if (index === -1) return url;
-        return urlObj.pathname.slice(index + "/images/".length);
-      } catch {
-        return url;
-      }
-    });
-
-    const propToSave = { ...editingProp, imagenes: imagenesPaths };
-
-    const { error } = await supabase
-      .from("propiedades")
-      .update(propToSave)
-      .eq("id", editingProp.id);
-
-    if (error) {
-      alert("Error al actualizar propiedad: " + error.message);
-      setLoading(false);
-      return;
-    }
-    setPropiedades((prev) =>
-      prev.map((p) =>
-        p.id === editingProp.id
-          ? { ...propToSave, imagenes: editingProp.imagenes }
-          : p
-      )
-    );
-    setEditingProp(null);
-    setLoading(false);
-  };
-
-  const deletePropiedad = async (id) => {
-    const confirmar = window.confirm(
-      "¿Estás seguro que querés eliminar esta propiedad?"
-    );
-    if (!confirmar) return;
-
-    const { error } = await supabase.from("propiedades").delete().eq("id", id);
-    if (error) {
-      alert("Error al eliminar propiedad: " + error.message);
-    } else {
-      setPropiedades((prev) => prev.filter((p) => p.id !== id));
-    }
-  };
-
-  const handleUploadImage = async (event) => {
-    if (!editingProp) return;
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if ((editingProp.imagenes?.length || 0) >= 5) {
-      alert("No podés subir más de 5 imágenes");
-      return;
-    }
-
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${editingProp.id}_${Date.now()}.${fileExt}`;
-
-    const { error } = await supabase.storage
-      .from("images")
-      .upload(fileName, file, { upsert: false });
-
-    if (error) {
-      alert("Error al subir la imagen: " + error.message);
-      return;
-    }
-
-    const { data } = supabase.storage.from("images").getPublicUrl(fileName);
-
-    setEditingProp((prev) => ({
-      ...prev,
-      imagenes: [...(prev.imagenes || []), data.publicUrl].slice(0, 5),
-    }));
-
-    event.target.value = null;
   };
 
   return (
-    <div className="min-h-screen p-6 text-white bg-neutral-900">
-      <h1 className="mb-6 text-3xl font-bold text-center">Panel de Administración</h1>
+    <div className="max-w-screen-xl min-h-screen p-4 mx-auto bg-gray-900">
+      <h1 className="mb-6 text-2xl font-bold text-center text-white">Panel de Administración</h1>
+
+      <Tabs
+        value={tabIndex}
+        onChange={(_, val) => setTabIndex(val)}
+        variant="scrollable"
+        textColor="inherit"
+        className="bg-gray-800 rounded-lg"
+        TabIndicatorProps={{ style: { backgroundColor: "#2563eb" } }}
+      >
+        {["Usuarios", "Propiedades", "Verificación"].map((label, i) => (
+          <Tab
+            key={label}
+            label={label}
+            sx={{
+              color: tabIndex === i ? "white" : "rgba(255,255,255,0.7)",
+              bgcolor: tabIndex === i ? "#2563eb" : "transparent",
+              "&:hover": { bgcolor: "#3b82f6", color: "white" },
+              fontWeight: "600",
+              fontSize: "1rem",
+            }}
+          />
+        ))}
+      </Tabs>
 
       {/* Usuarios */}
-      <section className="mb-12">
-        <h2 className="mb-4 text-2xl font-semibold">Usuarios</h2>
-        <div className="grid gap-4">
-          {usuarios.map((user) =>
-            editingUser?.id === user.id ? (
-              <div key={user.id} className="p-4 bg-neutral-800 rounded-xl">
-                <label className="block mb-1 font-semibold" htmlFor="nombre">
-                  Nombre
-                </label>
-                <input
-                  id="nombre"
-                  className="w-full p-2 mb-2 text-white rounded bg-neutral-700"
-                  name="nombre"
-                  value={editingUser.nombre || ""}
-                  onChange={handleUserChange}
-                  placeholder="Nombre"
-                />
-                <label className="block mb-1 font-semibold" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  className="w-full p-2 mb-2 text-white rounded bg-neutral-700"
-                  name="email"
-                  value={editingUser.email || ""}
-                  onChange={handleUserChange}
-                  placeholder="Email"
-                />
-                <label className="block mb-1 font-semibold" htmlFor="tipo">
-                  Tipo
-                </label>
-                <select
-                  id="tipo"
-                  className="w-full p-2 mb-2 text-white rounded bg-neutral-700"
-                  name="tipo"
-                  value={editingUser.tipo || ""}
-                  onChange={handleUserChange}
-                >
-                  <option value="locatario">Locatario</option>
-                  <option value="locador">Locador</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <button
-                  onClick={saveUser}
-                  className="px-4 py-2 bg-green-600 rounded hover:bg-green-700"
-                >
-                  Guardar
-                </button>
-                <button
-                  onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 ml-2 bg-gray-600 rounded hover:bg-gray-700"
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-4 bg-neutral-800 rounded-xl"
-              >
-                <div>
-                  <p>
-                    <strong>{user.nombre || "Sin nombre"}</strong> -{" "}
-                    {user.email || "Sin email"} ({user.tipo || "Sin tipo"})
-                  </p>
-                </div>
-                <button
-                  onClick={() => setEditingUser(user)}
-                  className="px-3 py-1 text-sm bg-blue-600 rounded hover:bg-blue-700"
-                >
-                  Editar
-                </button>
-              </div>
-            )
-          )}
+      {tabIndex === 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-white border border-gray-700">
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="p-2 border border-gray-600">Email</th>
+                <th className="p-2 border border-gray-600">Verificación</th>
+                <th className="p-2 border border-gray-600">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u) => (
+                <tr key={u.id} className="border-t border-gray-700">
+                  <td className="p-2 border border-gray-600">{u.email}</td>
+                  <td className="p-2 capitalize border border-gray-600">
+                    {u.verificado === "aprobado"
+                      ? "✅ Verificado"
+                      : u.verificado === "pendiente"
+                      ? "🕐 Pendiente"
+                      : "❌ No verificado"}
+                  </td>
+                  <td className="p-2 space-x-1 border border-gray-600">
+                    <button
+                      className="px-2 py-1 transition bg-green-600 rounded hover:bg-green-700"
+                      onClick={() => updateVerificacion(u.id, "aprobado")}
+                      aria-label="Marcar como verificado"
+                    >
+                      Verificar
+                    </button>
+                    <button
+                      className="px-2 py-1 transition bg-yellow-500 rounded hover:bg-yellow-600"
+                      onClick={() => updateVerificacion(u.id, "pendiente")}
+                      aria-label="Marcar como pendiente"
+                    >
+                      Pendiente
+                    </button>
+                    <button
+                      className="px-2 py-1 transition bg-red-600 rounded hover:bg-red-700"
+                      onClick={() => updateVerificacion(u.id, "rechazado")}
+                      aria-label="Marcar como no verificado"
+                    >
+                      Rechazar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </section>
+      )}
 
       {/* Propiedades */}
-      <section>
-        <h2 className="mb-4 text-2xl font-semibold">Propiedades</h2>
-        <div className="grid gap-4">
-          {propiedades.map((prop) =>
-            editingProp?.id === prop.id ? (
-              <div key={prop.id} className="p-4 space-y-3 bg-neutral-800 rounded-xl">
-                <label className="block font-semibold" htmlFor="titulo">
-                  Título
-                </label>
-                <input
-                  id="titulo"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="titulo"
-                  value={editingProp.titulo || ""}
-                  onChange={handlePropChange}
-                  placeholder="Título"
-                />
+      {tabIndex === 1 && (
+        <div className="mt-4">
+          <h2 className="mb-2 font-bold text-white">Listado de Propiedades</h2>
+          <table className="w-full mt-4 text-white border border-gray-700">
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="p-2 border border-gray-600">Título</th>
+                <th className="p-2 border border-gray-600">Tipo</th>
+                <th className="p-2 border border-gray-600">Estado</th> {/* Nueva columna */}
+              </tr>
+            </thead>
+            <tbody>
+              {propiedades.map((p) => (
+                <tr
+                  key={p.id}
+                  className="border-t border-gray-700 cursor-pointer hover:bg-gray-700"
+                  onClick={() => {
+                    setSelectedPropiedad(p);
+                    setMapPos([p.latitud || -27.4678, p.longitud || -58.8345]);
+                  }}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setSelectedPropiedad(p);
+                      setMapPos([p.latitud || -27.4678, p.longitud || -58.8345]);
+                    }
+                  }}
+                >
+                  <td className="p-2 border border-gray-600">{p.titulo}</td>
+                  <td className="p-2 border border-gray-600">{p.tipo}</td>
+                  <td className="p-2 capitalize border border-gray-600">{p.estado || "disponible"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-                <label className="block font-semibold" htmlFor="descripcion">
-                  Descripción
-                </label>
-                <input
-                  id="descripcion"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="descripcion"
-                  value={editingProp.descripcion || ""}
-                  onChange={handlePropChange}
-                  placeholder="Descripción"
-                />
+          {selectedPropiedad && (
+            <div className="max-w-3xl mt-4 space-y-4 text-white">
+              <h3 className="text-lg font-semibold">Editar Propiedad</h3>
 
-                <label className="block font-semibold" htmlFor="precio">
-                  Precio
-                </label>
-                <input
-                  id="precio"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="precio"
-                  type="number"
-                  value={editingProp.precio || ""}
-                  onChange={handlePropChange}
-                  placeholder="Precio"
-                />
+              <label className="block mb-1 font-semibold" htmlFor="titulo">
+                Título
+              </label>
+              <input
+                id="titulo"
+                type="text"
+                placeholder="Título"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.titulo}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, titulo: e.target.value })
+                }
+              />
 
-                <label className="block font-semibold" htmlFor="direccion">
-                  Dirección
-                </label>
-                <input
-                  id="direccion"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="direccion"
-                  value={editingProp.direccion || ""}
-                  onChange={handlePropChange}
-                  placeholder="Dirección"
-                />
+              <label className="block mb-1 font-semibold" htmlFor="descripcion">
+                Descripción
+              </label>
+              <textarea
+                id="descripcion"
+                placeholder="Descripción"
+                className="w-full h-20 p-2 text-white bg-gray-800 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.descripcion}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, descripcion: e.target.value })
+                }
+              />
 
-                {/* Imágenes */}
-                <div className="mb-4">
-                  <label className="block mb-2 font-semibold">
-                    Imágenes (máximo 5):
-                  </label>
-                  <div className="flex flex-wrap gap-4 mb-2">
-                    {(editingProp.imagenes || []).map((url, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Imagen ${idx + 1}`}
-                          className="object-cover w-24 h-24 rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const nuevasImagenes = editingProp.imagenes.filter(
-                              (_, i) => i !== idx
-                            );
-                            setEditingProp((prev) => ({
-                              ...prev,
-                              imagenes: nuevasImagenes,
-                            }));
-                          }}
-                          className="absolute top-0 right-0 p-1 text-white bg-red-600 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-700"
-                          aria-label={`Eliminar imagen ${idx + 1}`}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+              <label className="block mb-1 font-semibold" htmlFor="precio">
+                Precio
+              </label>
+              <input
+                id="precio"
+                type="number"
+                placeholder="Precio"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.precio}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, precio: parseInt(e.target.value) || 0 })
+                }
+              />
 
-                  {(editingProp.imagenes?.length || 0) < 5 && (
-                    <>
-                      <label className="block w-full max-w-xs px-3 py-2 mb-2 text-center bg-blue-600 rounded cursor-pointer hover:bg-blue-700">
-                        Subir imagen desde PC
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleUploadImage}
-                          className="hidden"
-                        />
-                      </label>
+              <label className="block mb-1 font-semibold" htmlFor="direccion">
+                Dirección
+              </label>
+              <input
+                id="direccion"
+                type="text"
+                placeholder="Dirección"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.direccion}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, direccion: e.target.value })
+                }
+              />
 
-                      <label
-                        htmlFor="newImageUrl"
-                        className="block mt-2 mb-1 font-semibold"
-                      >
-                        Agregar URL de imagen
-                      </label>
-                      <input
-                        id="newImageUrl"
-                        type="text"
-                        placeholder="Nueva URL de imagen"
-                        className="w-full p-2 text-white rounded bg-neutral-700"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const url = e.target.value.trim();
-                            if (url) {
-                              setEditingProp((prev) => ({
-                                ...prev,
-                                imagenes: [...(prev.imagenes || []), url].slice(
-                                  0,
-                                  5
-                                ),
-                              }));
-                              e.target.value = "";
-                            }
-                          }
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
+              <label className="block mb-1 font-semibold" htmlFor="tipo">
+                Tipo
+              </label>
+              <select
+                id="tipo"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.tipo}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, tipo: e.target.value })
+                }
+              >
+                <option value="Departamento">Departamento</option>
+                <option value="Casa">Casa</option>
+                <option value="Estudio">Estudio</option>
+                <option value="Loft">Loft</option>
+                <option value="Monoambiente">Monoambiente</option>
+              </select>
 
-                <label className="block font-semibold" htmlFor="tipo">
-                  Tipo (Departamento, Casa, etc.)
-                </label>
-                <input
-                  id="tipo"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="tipo"
-                  value={editingProp.tipo || ""}
-                  onChange={handlePropChange}
-                  placeholder="Tipo (Departamento, Casa, etc.)"
-                />
+              <label className="block mt-4 mb-1 font-semibold" htmlFor="gestion">
+                Gestión
+              </label>
+              <select
+                id="gestion"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.gestion}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, gestion: e.target.value })
+                }
+              >
+                <option value="Dueño Directo">Dueño Directo</option>
+                <option value="Inmobiliaria">Inmobiliaria</option>
+              </select>
 
-                <label className="block font-semibold" htmlFor="gestion">
-                  Gestión (Dueño Directo, Inmobiliaria)
-                </label>
-                <input
-                  id="gestion"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="gestion"
-                  value={editingProp.gestion || ""}
-                  onChange={handlePropChange}
-                  placeholder="Gestión (Dueño Directo, Inmobiliaria)"
-                />
+              <label className="block mt-4 mb-1 font-semibold" htmlFor="contacto">
+                Contacto
+              </label>
+              <input
+                id="contacto"
+                type="text"
+                placeholder="Contacto"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.contacto}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, contacto: e.target.value })
+                }
+              />
 
-                <label className="block font-semibold" htmlFor="contacto">
-                  Contacto
-                </label>
-                <input
-                  id="contacto"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="contacto"
-                  value={editingProp.contacto || ""}
-                  onChange={handlePropChange}
-                  placeholder="Contacto"
-                />
+              <label className="block mt-4 mb-1 font-semibold" htmlFor="habitaciones">
+                Habitaciones
+              </label>
+              <input
+                id="habitaciones"
+                type="number"
+                placeholder="Habitaciones"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.habitaciones}
+                onChange={(e) =>
+                  setSelectedPropiedad({
+                    ...selectedPropiedad,
+                    habitaciones: parseInt(e.target.value) || 0,
+                  })
+                }
+              />
 
-                <label className="block font-semibold" htmlFor="habitaciones">
-                  Habitaciones
-                </label>
-                <input
-                  id="habitaciones"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="habitaciones"
-                  type="number"
-                  value={editingProp.habitaciones || ""}
-                  onChange={handlePropChange}
-                  placeholder="Habitaciones"
-                />
+              <label className="block mt-4 mb-1 font-semibold" htmlFor="superficie">
+                Superficie (m²)
+              </label>
+              <input
+                id="superficie"
+                type="number"
+                placeholder="Superficie (m²)"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.superficie}
+                onChange={(e) =>
+                  setSelectedPropiedad({
+                    ...selectedPropiedad,
+                    superficie: parseInt(e.target.value) || 0,
+                  })
+                }
+              />
 
-                <label className="block font-semibold" htmlFor="superficie">
-                  Superficie (m²)
-                </label>
-                <input
-                  id="superficie"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="superficie"
-                  type="number"
-                  value={editingProp.superficie || ""}
-                  onChange={handlePropChange}
-                  placeholder="Superficie (m²)"
-                />
-
-                <label className="flex items-center gap-2">
+              <div className="flex flex-wrap gap-4 mt-4">
+                <label className="flex items-center gap-2" htmlFor="permiten_mascotas">
                   <input
+                    id="permiten_mascotas"
                     type="checkbox"
-                    name="permiten_mascotas"
-                    checked={!!editingProp.permiten_mascotas}
-                    onChange={handlePropChange}
+                    checked={selectedPropiedad.permiten_mascotas}
+                    onChange={(e) =>
+                      setSelectedPropiedad({ ...selectedPropiedad, permiten_mascotas: e.target.checked })
+                    }
                   />
                   Permiten mascotas
                 </label>
 
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2" htmlFor="permiten_ninos">
                   <input
+                    id="permiten_ninos"
                     type="checkbox"
-                    name="permiten_ninos"
-                    checked={!!editingProp.permiten_ninos}
-                    onChange={handlePropChange}
+                    checked={selectedPropiedad.permiten_ninos}
+                    onChange={(e) =>
+                      setSelectedPropiedad({ ...selectedPropiedad, permiten_ninos: e.target.checked })
+                    }
                   />
                   Permiten niños
                 </label>
 
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2" htmlFor="servicios_incluidos">
                   <input
+                    id="servicios_incluidos"
                     type="checkbox"
-                    name="servicios_incluidos"
-                    checked={!!editingProp.servicios_incluidos}
-                    onChange={handlePropChange}
+                    checked={selectedPropiedad.servicios_incluidos}
+                    onChange={(e) =>
+                      setSelectedPropiedad({ ...selectedPropiedad, servicios_incluidos: e.target.checked })
+                    }
                   />
                   Servicios incluidos
                 </label>
 
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2" htmlFor="amoblado">
                   <input
+                    id="amoblado"
                     type="checkbox"
-                    name="amoblado"
-                    checked={!!editingProp.amoblado}
-                    onChange={handlePropChange}
+                    checked={selectedPropiedad.amoblado}
+                    onChange={(e) =>
+                      setSelectedPropiedad({ ...selectedPropiedad, amoblado: e.target.checked })
+                    }
                   />
                   Amoblado
                 </label>
-
-                <label className="block font-semibold" htmlFor="fecha_ingreso">
-                  Fecha ingreso
-                </label>
-                <input
-                  id="fecha_ingreso"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="fecha_ingreso"
-                  type="date"
-                  value={
-                    editingProp.fecha_ingreso
-                      ? new Date(editingProp.fecha_ingreso)
-                          .toISOString()
-                          .substr(0, 10)
-                      : ""
-                  }
-                  onChange={handlePropChange}
-                  placeholder="Fecha ingreso"
-                />
-
-                {/* Mapa para corregir ubicación */}
-                <label className="block mt-4 mb-2 font-semibold">
-                  Ubicación (click o arrastrar marcador)
-                </label>
-                <div className="h-64 overflow-hidden rounded-lg">
-                  <MapContainer
-                    center={[
-                      editingProp.latitud || -27.4738,
-                      editingProp.longitud || -58.8323,
-                    ]}
-                    zoom={13}
-                    style={{ height: "100%", width: "100%" }}
-                  >
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <LocationMarker
-                      position={{
-                        lat: editingProp.latitud || -27.4738,
-                        lng: editingProp.longitud || -58.8323,
-                      }}
-                      setPosition={setPosition}
-                    />
-                  </MapContainer>
-                </div>
-
-                <label className="block mt-4 font-semibold" htmlFor="latitud">
-                  Latitud
-                </label>
-                <input
-                  id="latitud"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="latitud"
-                  type="number"
-                  step="any"
-                  value={editingProp.latitud || ""}
-                  onChange={handlePropChange}
-                  placeholder="Latitud"
-                />
-
-                <label className="block font-semibold" htmlFor="longitud">
-                  Longitud
-                </label>
-                <input
-                  id="longitud"
-                  className="w-full p-2 text-white rounded bg-neutral-700"
-                  name="longitud"
-                  type="number"
-                  step="any"
-                  value={editingProp.longitud || ""}
-                  onChange={handlePropChange}
-                  placeholder="Longitud"
-                />
-
-                <div className="flex gap-2 mt-4">
-                  <button
-                    onClick={saveProp}
-                    disabled={loading}
-                    className="px-4 py-2 bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {loading ? "Guardando..." : "Guardar"}
-                  </button>
-                  <button
-                    onClick={() => setEditingProp(null)}
-                    className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700"
-                  >
-                    Cancelar
-                  </button>
-                </div>
               </div>
-            ) : (
-              <div
-                key={prop.id}
-                className="flex items-center justify-between p-4 bg-neutral-800 rounded-xl"
+
+              <label className="block mt-4 mb-1 font-semibold" htmlFor="fecha_ingreso">
+                Fecha de ingreso
+              </label>
+              <input
+                id="fecha_ingreso"
+                type="date"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={
+                  selectedPropiedad.fecha_ingreso
+                    ? selectedPropiedad.fecha_ingreso.split("T")[0]
+                    : ""
+                }
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, fecha_ingreso: e.target.value })
+                }
+              />
+
+              {/* Aquí agrego el select para Estado */}
+              <label className="block mt-4 mb-1 font-semibold" htmlFor="estado">
+                Estado
+              </label>
+              <select
+                id="estado"
+                className="w-full p-2 text-white bg-gray-800 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPropiedad.estado || "disponible"}
+                onChange={(e) =>
+                  setSelectedPropiedad({ ...selectedPropiedad, estado: e.target.value })
+                }
               >
-                <div>
-                  <p>
-                    <strong>{prop.titulo || "Sin título"}</strong> -{" "}
-                    {prop.direccion || "Sin dirección"} - ${prop.precio || "0"}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setEditingProp(prop)}
-                    className="px-3 py-1 text-sm bg-blue-600 rounded hover:bg-blue-700"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => deletePropiedad(prop.id)}
-                    className="px-3 py-1 text-sm bg-red-600 rounded hover:bg-red-700"
-                    aria-label={`Eliminar propiedad ${prop.titulo}`}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            )
+                <option value="disponible">Disponible</option>
+                <option value="alquilada">Alquilada</option>
+              </select>
+
+              <label className="block mt-4 mb-1 font-semibold">Ubicación en el mapa</label>
+              <MapContainer
+                center={mapPos}
+                zoom={13}
+                style={{ height: "300px", width: "100%" }}
+                whenCreated={(map) => {
+                  map.on("click", handleMapClick);
+                }}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution="&copy; OpenStreetMap contributors"
+                />
+                <Marker position={[selectedPropiedad.latitud || -27.4678, selectedPropiedad.longitud || -58.8345]} />
+              </MapContainer>
+
+              <button
+                onClick={async () => {
+                  if (!selectedPropiedad) return;
+                  await supabase.from("propiedades").delete().eq("id", selectedPropiedad.id);
+                  setSelectedPropiedad(null);
+                  getPropiedades();
+                }}
+                className="w-full py-2 mt-3 font-semibold transition bg-red-600 rounded hover:bg-red-700"
+                aria-label="Eliminar propiedad"
+              >
+                Eliminar Propiedad
+              </button>
+
+              <button
+                onClick={updatePropiedad}
+                className="w-full py-2 mt-3 font-semibold transition bg-blue-600 rounded hover:bg-blue-700"
+              >
+                Guardar Cambios
+              </button>
+            </div>
           )}
         </div>
-      </section>
+      )}
+
+      {/* Verificación */}
+      {tabIndex === 2 && (
+        <div className="mt-4 text-white">
+          <h2 className="mb-2 font-bold">Documentación de Verificación</h2>
+          <ul className="space-y-2 overflow-auto max-h-64">
+            {usuarios.filter((u) => u.verificado === "pendiente").length === 0 && (
+              <p>No hay usuarios pendientes de verificación.</p>
+            )}
+            {usuarios
+              .filter((u) => u.verificado === "pendiente")
+              .map((u) => (
+                <li
+                  key={u.id}
+                  className="flex items-center justify-between p-2 bg-gray-800 rounded"
+                >
+                  <span>{u.email}</span>
+                  <a
+                    href={`https://tu-bucket-url/documentacion/${u.id}/`} // Cambiar a tu URL real
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-400 hover:underline"
+                    aria-label={`Ver documentación de ${u.email}`}
+                  >
+                    Ver Documentación
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

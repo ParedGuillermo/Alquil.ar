@@ -17,8 +17,20 @@ const Propiedades = () => {
 
   useEffect(() => {
     const fetchPropiedades = async () => {
-      const { data, error } = await supabase.from("propiedades").select("*");
-      if (!error) setPropiedades(data);
+      const { data, error } = await supabase
+        .from("propiedades")
+        .select(`
+          *,
+          usuario:usuario_id (
+            nombre,
+            verificado
+          )
+        `);
+      if (error) {
+        console.error("Error al traer propiedades:", error);
+        return;
+      }
+      setPropiedades(data);
     };
     fetchPropiedades();
   }, []);
@@ -175,35 +187,61 @@ const Propiedades = () => {
           </p>
         )}
 
-        {propiedadesFiltradas.map((prop) => (
-          <div
-            key={prop.id}
-            className="flex flex-col bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-cyan-600 cursor-pointer"
-            onClick={() => navigate(`/propiedad/${prop.id}`)}
-          >
-            {/* Cambiado a Carousel */}
-            <Carousel images={prop.imagenes || []} />
+        {propiedadesFiltradas.map((prop) => {
+          const propietario = prop.usuario || { nombre: "Desconocido", verificado: false };
 
-            <div className="flex flex-col flex-grow p-4">
-              <h2 className="mb-1 text-xl font-semibold text-white truncate">
-                {prop.titulo}
-              </h2>
-              <p className="mb-2 truncate text-cyan-400">{prop.direccion}</p>
-              <p className="mb-4 text-sm text-gray-300 line-clamp-2">
-                {prop.descripcion}
-              </p>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/propiedad/${prop.id}`);
-                }}
-                className="py-2 mt-auto text-white transition rounded-lg bg-cyan-600 hover:bg-cyan-700"
-              >
-                Ver Detalles
-              </button>
+          return (
+            <div
+              key={prop.id}
+              className="flex flex-col bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-cyan-600 cursor-pointer"
+              onClick={() => navigate(`/propiedad/${prop.id}`)}
+            >
+              <Carousel images={prop.imagen_url || []} />
+
+              <div className="flex flex-col flex-grow p-4">
+                <h2 className="mb-1 text-xl font-semibold text-white truncate">
+                  {prop.titulo}
+                </h2>
+                <p className="mb-2 truncate text-cyan-400">{prop.direccion}</p>
+                <p className="flex items-center gap-2 mb-2 text-sm text-gray-400">
+                  Dueño: {propietario.nombre}
+                  {propietario.verificado && (
+                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded bg-cyan-600 text-white select-none">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4 mr-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Verificado
+                    </span>
+                  )}
+                </p>
+                <p className="mb-4 text-sm text-gray-300 line-clamp-2">
+                  {prop.descripcion}
+                </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/propiedad/${prop.id}`);
+                  }}
+                  className="py-2 mt-auto text-white transition rounded-lg bg-cyan-600 hover:bg-cyan-700"
+                >
+                  Ver Detalles
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
