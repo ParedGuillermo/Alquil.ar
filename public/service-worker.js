@@ -1,4 +1,4 @@
-const CACHE_NAME = 'petslink-cache-v1';
+const CACHE_NAME = 'al-cache-v1';
 const urlsToCache = [
   '/',                  // La página principal
   '/index.html',        // Asegúrate de que index.html esté disponible

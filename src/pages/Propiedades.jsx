@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import Skeleton from "@mui/material/Skeleton";
 
 const TIPOS = ["Departamento", "Casa", "Estudio", "Loft", "Monoambiente"];
 const GESTIONES = ["Dueño Directo", "Inmobiliaria"];
@@ -13,10 +15,12 @@ const Propiedades = () => {
     precioMin: "",
     precioMax: "",
   });
+  const [loading, setLoading] = useState(true); // Estado para controlar loading
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPropiedades = async () => {
+      setLoading(true);
       const { data, error } = await supabase
         .from("propiedades")
         .select(`
@@ -28,9 +32,11 @@ const Propiedades = () => {
         `);
       if (error) {
         console.error("Error al traer propiedades:", error);
+        setLoading(false);
         return;
       }
       setPropiedades(data);
+      setLoading(false);
     };
     fetchPropiedades();
   }, []);
@@ -107,142 +113,214 @@ const Propiedades = () => {
 
   return (
     <div className="min-h-screen px-4 py-6 bg-background text-textPrimary">
-      <h1 className="mb-6 text-3xl font-bold text-center text-textPrimary">
+      <motion.h1
+        className="mb-6 text-3xl font-bold text-center text-textPrimary"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
         Propiedades disponibles
-      </h1>
+      </motion.h1>
 
       {/* Filtros */}
-      <div className="grid max-w-5xl gap-4 mx-auto mb-8 sm:grid-cols-2 md:grid-cols-4">
-        {/* Tipo */}
-        <select
-          name="tipo"
-          value={filtros.tipo}
-          onChange={handleFiltroChange}
-          className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
-          aria-label="Filtrar por tipo"
-        >
-          <option value="">Tipo (todos)</option>
-          {TIPOS.map((tipo) => (
-            <option key={tipo} value={tipo}>
-              {tipo}
-            </option>
-          ))}
-        </select>
+      <motion.div
+        className="grid max-w-5xl gap-4 mx-auto mb-8 sm:grid-cols-2 md:grid-cols-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
+        {loading ? (
+          <>
+            {Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <Skeleton key={i} variant="rectangular" height={40} />
+              ))}
+          </>
+        ) : (
+          <>
+            {/* Tipo */}
+            <select
+              name="tipo"
+              value={filtros.tipo}
+              onChange={handleFiltroChange}
+              className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
+              aria-label="Filtrar por tipo"
+            >
+              <option value="">Tipo (todos)</option>
+              {TIPOS.map((tipo) => (
+                <option key={tipo} value={tipo}>
+                  {tipo}
+                </option>
+              ))}
+            </select>
 
-        {/* Gestión */}
-        <select
-          name="gestion"
-          value={filtros.gestion}
-          onChange={handleFiltroChange}
-          className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
-          aria-label="Filtrar por gestión"
-        >
-          <option value="">Gestión (todas)</option>
-          {GESTIONES.map((gestion) => (
-            <option key={gestion} value={gestion}>
-              {gestion}
-            </option>
-          ))}
-        </select>
+            {/* Gestión */}
+            <select
+              name="gestion"
+              value={filtros.gestion}
+              onChange={handleFiltroChange}
+              className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
+              aria-label="Filtrar por gestión"
+            >
+              <option value="">Gestión (todas)</option>
+              {GESTIONES.map((gestion) => (
+                <option key={gestion} value={gestion}>
+                  {gestion}
+                </option>
+              ))}
+            </select>
 
-        {/* Precio mínimo */}
-        <input
-          type="number"
-          name="precioMin"
-          value={filtros.precioMin}
-          onChange={handleFiltroChange}
-          placeholder="Precio mínimo"
-          className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
-          min={0}
-          aria-label="Precio mínimo"
-        />
+            {/* Precio mínimo */}
+            <input
+              type="number"
+              name="precioMin"
+              value={filtros.precioMin}
+              onChange={handleFiltroChange}
+              placeholder="Precio mínimo"
+              className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
+              min={0}
+              aria-label="Precio mínimo"
+            />
 
-        {/* Precio máximo */}
-        <input
-          type="number"
-          name="precioMax"
-          value={filtros.precioMax}
-          onChange={handleFiltroChange}
-          placeholder="Precio máximo"
-          className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
-          min={0}
-          aria-label="Precio máximo"
-        />
-      </div>
+            {/* Precio máximo */}
+            <input
+              type="number"
+              name="precioMax"
+              value={filtros.precioMax}
+              onChange={handleFiltroChange}
+              placeholder="Precio máximo"
+              className="p-2 text-white bg-gray-800 rounded focus:outline-cyan-500"
+              min={0}
+              aria-label="Precio máximo"
+            />
+          </>
+        )}
+      </motion.div>
 
       <div className="flex justify-end max-w-5xl mx-auto mb-6">
-        <button
+        <motion.button
           onClick={resetFiltros}
           className="px-4 py-2 text-sm font-semibold bg-gray-800 rounded text-cyan-600 hover:bg-gray-700"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          aria-label="Limpiar filtros"
         >
           Limpiar filtros
-        </button>
+        </motion.button>
       </div>
 
       {/* Listado filtrado */}
-      <div className="grid max-w-5xl gap-6 mx-auto md:grid-cols-2 lg:grid-cols-3">
-        {propiedadesFiltradas.length === 0 && (
-          <p className="text-center text-gray-400 col-span-full">
-            No hay propiedades que coincidan con los filtros.
-          </p>
-        )}
+      <motion.div
+        className="grid max-w-5xl gap-6 mx-auto md:grid-cols-2 lg:grid-cols-3"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+              staggerChildren: 0.1,
+              duration: 0.5,
+            },
+          },
+        }}
+      >
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <motion.div
+                key={i}
+                className="flex flex-col overflow-hidden rounded-2xl"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+              >
+                <Skeleton variant="rectangular" height={192} />
+                <Skeleton width="60%" />
+                <Skeleton width="40%" />
+                <Skeleton width="80%" />
+                <Skeleton width="40%" />
+                <Skeleton width="30%" />
+              </motion.div>
+            ))
+          : propiedadesFiltradas.length === 0 ? (
+              <p className="text-center text-gray-400 col-span-full">
+                No hay propiedades que coincidan con los filtros.
+              </p>
+            ) : (
+              propiedadesFiltradas.map((prop, i) => {
+                const propietario = prop.usuario || { nombre: "Desconocido", verificado: false };
+                return (
+                  <motion.div
+                    key={prop.id}
+                    whileHover={{ scale: 1.02, boxShadow: "0 10px 20px rgba(0,255,255,0.3)" }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex flex-col overflow-hidden bg-gray-800 shadow-lg cursor-pointer rounded-2xl"
+                    onClick={() => navigate(`/propiedad/${prop.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        navigate(`/propiedad/${prop.id}`);
+                      }
+                    }}
+                    aria-label={`Ver detalles de la propiedad ${prop.titulo}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                  >
+                    <Carousel images={prop.imagen_url || []} />
 
-        {propiedadesFiltradas.map((prop) => {
-          const propietario = prop.usuario || { nombre: "Desconocido", verificado: false };
-
-          return (
-            <div
-              key={prop.id}
-              className="flex flex-col bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-cyan-600 cursor-pointer"
-              onClick={() => navigate(`/propiedad/${prop.id}`)}
-            >
-              <Carousel images={prop.imagen_url || []} />
-
-              <div className="flex flex-col flex-grow p-4">
-                <h2 className="mb-1 text-xl font-semibold text-white truncate">
-                  {prop.titulo}
-                </h2>
-                <p className="mb-2 truncate text-cyan-400">{prop.direccion}</p>
-                <p className="flex items-center gap-2 mb-2 text-sm text-gray-400">
-                  Dueño: {propietario.nombre}
-                  {propietario.verificado && (
-                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded bg-cyan-600 text-white select-none">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-4 h-4 mr-1"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        aria-hidden="true"
+                    <div className="flex flex-col flex-grow p-4">
+                      <h2 className="mb-1 text-xl font-semibold text-white truncate">
+                        {prop.titulo}
+                      </h2>
+                      <p className="mb-2 truncate text-cyan-400">{prop.direccion}</p>
+                      <p className="flex items-center gap-2 mb-2 text-sm text-gray-400">
+                        Dueño: {propietario.nombre}
+                        {propietario.verificado && (
+                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded bg-cyan-600 text-white select-none">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="w-4 h-4 mr-1"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            Verificado
+                          </span>
+                        )}
+                      </p>
+                      <p className="mb-4 text-sm text-gray-300 line-clamp-2">
+                        {prop.descripcion}
+                      </p>
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/propiedad/${prop.id}`);
+                        }}
+                        className="py-2 mt-auto text-white transition rounded-lg bg-cyan-600 hover:bg-cyan-700"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        aria-label={`Ver detalles de ${prop.titulo}`}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      Verificado
-                    </span>
-                  )}
-                </p>
-                <p className="mb-4 text-sm text-gray-300 line-clamp-2">
-                  {prop.descripcion}
-                </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/propiedad/${prop.id}`);
-                  }}
-                  className="py-2 mt-auto text-white transition rounded-lg bg-cyan-600 hover:bg-cyan-700"
-                >
-                  Ver Detalles
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                        Ver Detalles
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+      </motion.div>
     </div>
   );
 };

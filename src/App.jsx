@@ -20,6 +20,10 @@ import MapaAlquileres from "./pages/MapaAlquileres";
 import Verification from "./pages/Verification"; // <-- AGREGADO
 import EditarPropiedad from "./pages/EditarPropiedad"; // <-- AGREGADO
 
+// Importamos las nuevas páginas:
+import Contacto from "./pages/Contacto";  // <-- NUEVO
+import TerminosYCondiciones from "./pages/TerminosYCondiciones";  // <-- NUEVO
+
 import BottomNav from "./components/BottomNav";
 import { CartProvider } from "./components/CartContext";
 import CartModal from "./components/CartModal";
@@ -45,6 +49,10 @@ export default function App() {
               <Route path="/propiedades" element={<Propiedades />} />
               <Route path="/propiedad/:id" element={<PropiedadDetalle />} />
               <Route path="/servicios" element={<Servicios />} />
+
+              {/* Nuevas rutas públicas */}
+              <Route path="/contacto" element={<Contacto />} />  {/* NUEVO */}
+              <Route path="/terminos-y-condiciones" element={<TerminosYCondiciones />} />  {/* NUEVO */}
 
               {/* Nueva ruta para mapa de alquileres */}
               <Route path="/mapa-alquileres" element={<MapaAlquileres />} />

@@ -1,0 +1,38 @@
+import React from "react";
+
+const Logo = ({ size = 48 }) => {
+  return (
+    <svg
+      width={size * 3}
+      height={size}
+      viewBox="0 0 300 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Logo AlquilAr"
+    >
+      <text
+        x="0"
+        y="70"
+        fontFamily="Poppins, sans-serif"
+        fontWeight="700"
+        fontSize="64"
+        fill="#4FD1C5" /* Celeste/azul claro */
+      >
+        Alquil
+      </text>
+      <text
+        x="180"
+        y="70"
+        fontFamily="Poppins, sans-serif"
+        fontWeight="700"
+        fontSize="64"
+        fill="#1E3A8A" /* Azul oscuro */
+      >
+        Ar
+      </text>
+    </svg>
+  );
+};
+
+export default Logo;
