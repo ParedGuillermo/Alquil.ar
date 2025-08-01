@@ -101,44 +101,45 @@ export default function Home() {
   const isMobile = window.innerWidth <= 640;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-textPrimary">
-      
+    <div className="flex flex-col min-h-screen pb-20 bg-background text-textPrimary">
       {/* Hero */}
       <HeroSection />
 
       {/* Mapa con propiedades */}
-      <section className="container px-4 py-10 mx-auto">
+      <section className="container relative z-0 px-4 py-10 mx-auto">
         <h2 className="mb-6 text-3xl font-bold text-center text-primary">
           Propiedades en el mapa
         </h2>
 
         {propiedadesConUbicacion.length > 0 ? (
-          <MapContainer
-            center={[
-              propiedadesConUbicacion[0].latitud,
-              propiedadesConUbicacion[0].longitud,
-            ]}
-            zoom={12}
-            style={{ height: isMobile ? "300px" : "400px", width: "100%" }}
-            scrollWheelZoom={!isMobile}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap contributors"
-            />
-            {propiedadesConUbicacion.map((prop) => (
-              <Marker
-                key={prop.id}
-                position={[prop.latitud, prop.longitud]}
-                icon={markerIcon}
-                eventHandlers={{
-                  click: () => navigate("/mapa-alquileres"),
-                }}
-              >
-                <Tooltip>{prop.titulo}</Tooltip>
-              </Marker>
-            ))}
-          </MapContainer>
+          <div className="relative z-0">
+            <MapContainer
+              center={[
+                propiedadesConUbicacion[0].latitud,
+                propiedadesConUbicacion[0].longitud,
+              ]}
+              zoom={12}
+              style={{ height: isMobile ? "300px" : "400px", width: "100%" }}
+              scrollWheelZoom={!isMobile}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              {propiedadesConUbicacion.map((prop) => (
+                <Marker
+                  key={prop.id}
+                  position={[prop.latitud, prop.longitud]}
+                  icon={markerIcon}
+                  eventHandlers={{
+                    click: () => navigate("/mapa-alquileres"),
+                  }}
+                >
+                  <Tooltip>{prop.titulo}</Tooltip>
+                </Marker>
+              ))}
+            </MapContainer>
+          </div>
         ) : (
           <p className="py-10 text-center text-gray-600">
             No hay propiedades con ubicación disponible.
