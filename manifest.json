@@ -1,11 +1,11 @@
 {
-  "name": "Pets Link",
-  "short_name": "PetsLink",
-  "description": "La app para cuidar a tus mascotas",
+  "name": "Alquil.ar",
+  "short_name": "Alquil.ar",
+  "description": "La plataforma para encontrar y publicar alquileres seguros en Argentina",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4CAF50",
+  "background_color": "#0e7490",    
+  "theme_color": "#06b6d4",
   "icons": [
     {
       "src": "/favicon.ico",
