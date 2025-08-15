@@ -85,30 +85,32 @@ const CargarPropiedad = () => {
   };
 
   const uploadImages = async () => {
-    const urls = [];
+  const urls = [];
 
-    for (const file of imagenes) {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
+  for (const file of imagenes) {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`; // Guardamos por usuario para orden
 
-      const { error: uploadError } = await supabase.storage
-        .from("images")
-        .upload(filePath, file);
+    // Subida
+    const { error: uploadError } = await supabase.storage
+      .from("images")
+      .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
-      if (uploadError) throw uploadError;
+    if (uploadError) throw uploadError;
 
-      const { publicURL, error: urlError } = supabase.storage
-        .from("images")
-        .getPublicUrl(filePath);
+    // Obtener URL pública
+    const { data } = supabase.storage
+      .from("images")
+      .getPublicUrl(filePath);
 
-      if (urlError) throw urlError;
+    if (!data?.publicUrl) throw new Error("No se pudo obtener la URL de la imagen");
 
-      urls.push(publicURL);
-    }
+    urls.push(data.publicUrl);
+  }
 
-    return urls;
-  };
+  return urls;
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
